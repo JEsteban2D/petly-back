@@ -110,7 +110,7 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         // Permite el origen de Vue (5173) y Spring Boot (8080)
-        config.setAllowedOrigins(Arrays.asList(
+        config.setAllowedOriginPatterns(Arrays.asList(
                 "http://localhost:5173",
                 "http://127.0.0.1:5173",
                 "http://localhost:8080",

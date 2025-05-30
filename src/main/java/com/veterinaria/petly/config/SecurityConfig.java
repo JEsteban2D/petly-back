@@ -41,7 +41,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/api/auth/check").permitAll() // Permitir endpoints de auth
+                        .requestMatchers("/api/auth/**", "/api/auth/check/**").permitAll() // Permitir endpoints de auth
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/user/**").hasAnyRole("ADMIN", "USER")
                         .anyRequest().authenticated()
@@ -56,7 +56,7 @@ public class SecurityConfig {
                         .logoutSuccessHandler(logoutSuccessHandler())
                 )
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 );
 
         return http.build();
@@ -115,8 +115,7 @@ public class SecurityConfig {
                 "http://localhost:5173",
                 "http://127.0.0.1:5173",
                 "http://localhost:8080",
-                "https://petly-front.netlify.app",
-                "https://petly-back-srtc.onrender.com/api/auth/check"
+                "https://petly-front.netlify.app"
         ));
 
         // Métodos HTTP permitidos

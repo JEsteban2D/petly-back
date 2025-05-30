@@ -35,39 +35,73 @@ import java.util.stream.Collectors;
 @EnableWebSecurity
 public class SecurityConfig {
 
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // Deshabilitar CSRF para desarrollo
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Habilitar CORS
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll() // Permitir endpoints de auth
-                        .anyRequest().authenticated() // Resto requiere autenticación
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
                         .loginProcessingUrl("/api/auth/login")
-                        .successHandler(simpleSuccessHandler())
-                        .failureHandler(simpleFailureHandler())
+                        .successHandler(authenticationSuccessHandler())
+                        .failureHandler(authenticationFailureHandler())
+                        .usernameParameter("username")
+                        .passwordParameter("password")
+                )
+                .logout(logout -> logout
+                        .logoutUrl("/api/auth/logout")
+                        .logoutSuccessHandler(logoutSuccessHandler())
+                )
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 );
 
         return http.build();
     }
 
     @Bean
-    public AuthenticationSuccessHandler simpleSuccessHandler() {
+    public AuthenticationSuccessHandler authenticationSuccessHandler() {
         return (request, response, authentication) -> {
+            Map<String, Object> body = new HashMap<>();
+            body.put("message", "Login successful");
+            body.put("user", authentication.getName());
+            body.put("roles", authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .collect(Collectors.toList()));
+
             response.setContentType("application/json");
-            response.getWriter().write("{\"status\":\"success\"}");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write(new ObjectMapper().writeValueAsString(body));
+            response.setStatus(HttpStatus.OK.value());
         };
     }
 
     @Bean
-    public AuthenticationFailureHandler simpleFailureHandler() {
+    public AuthenticationFailureHandler authenticationFailureHandler() {
         return (request, response, exception) -> {
-            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            Map<String, Object> body = new HashMap<>();
+            body.put("message", "Login failed: " + exception.getMessage());
+
             response.setContentType("application/json");
-            response.getWriter().write("{\"error\":\"Login failed\"}");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write(new ObjectMapper().writeValueAsString(body));
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+        };
+    }
+
+    @Bean
+    public LogoutSuccessHandler logoutSuccessHandler() {
+        return (request, response, authentication) -> {
+            Map<String, Object> body = new HashMap<>();
+            body.put("message", "Logout successful");
+
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write(new ObjectMapper().writeValueAsString(body));
+            response.setStatus(HttpStatus.OK.value());
         };
     }
 
@@ -75,26 +109,58 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // Especifica los orígenes permitidos (tu dominio Netlify y localhost)
-        config.setAllowedOrigins(Arrays.asList(
-                "https://petly-front.netlify.app",
-                "http://localhost:5173"
+        // Permite el origen de Vue (5173) y Spring Boot (8080)
+        config.setAllowedOriginPatterns(Arrays.asList(
+                "*",
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "http://localhost:8080",
+                "https://petly-front.netlify.app"
         ));
 
-        // Métodos permitidos
+        // Métodos HTTP permitidos
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 
         // Headers permitidos
-        config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
+        config.setAllowedHeaders(Arrays.asList(
+                "*",
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "X-Requested-With"
+        ));
 
-        // IMPORTANTE: Permite credenciales
+        // Permite cookies y credenciales
         config.setAllowCredentials(true);
 
-        // Headers expuestos
-        config.setExposedHeaders(Arrays.asList("Authorization"));
+        // Tiempo de cache para config CORS (opcional)
+        config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    // Configuración de usuarios en memoria (solo para desarrollo)
+    @Bean
+    public UserDetailsService userDetailsService() {
+        UserDetails admin = User.builder()
+                .username("admin")
+                .password(passwordEncoder().encode("admin123"))
+                .roles("ADMIN")
+                .build();
+
+        UserDetails user = User.builder()
+                .username("user")
+                .password(passwordEncoder().encode("user123"))
+                .roles("USER")
+                .build();
+
+        return new InMemoryUserDetailsManager(admin, user);
     }
 }

@@ -48,13 +48,8 @@ public class SecurityConfig {
                 )
                 .formLogin(form -> form
                         .loginProcessingUrl("/api/auth/login")
-                        .successHandler((request, response, authentication) -> {
-                            // No necesitamos hacer nada aquí, la redirección se manejará desde Vue
-                            response.setStatus(HttpStatus.OK.value());
-                        })
-                        .failureHandler((request, response, exception) -> {
-                            response.setStatus(HttpStatus.UNAUTHORIZED.value());
-                        })
+                        .successHandler(authenticationSuccessHandler()) // este devuelve JSON con usuario y roles
+                        .failureHandler(authenticationFailureHandler()) // este devuelve JSON con el error
                 )
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")

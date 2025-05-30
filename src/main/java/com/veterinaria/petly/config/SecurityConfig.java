@@ -41,15 +41,15 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/api/auth/check/**").permitAll() // Permitir endpoints de auth
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/user/**").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers("/api/auth/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
                         .loginProcessingUrl("/api/auth/login")
-                        .successHandler(authenticationSuccessHandler()) // este devuelve JSON con usuario y roles
-                        .failureHandler(authenticationFailureHandler()) // este devuelve JSON con el error
+                        .successHandler(authenticationSuccessHandler())
+                        .failureHandler(authenticationFailureHandler())
+                        .usernameParameter("username")
+                        .passwordParameter("password")
                 )
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")

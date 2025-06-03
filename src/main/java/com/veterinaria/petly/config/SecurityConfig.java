@@ -147,14 +147,15 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // Reemplaza los patrones con tu URL exacta de Netlify
+        // Especifica explícitamente tu dominio frontend (no uses wildcard '*')
         config.setAllowedOrigins(Arrays.asList(
-                "https://petly-front.netlify.app"
+                "https://petly-front.netlify.app",
+                "http://localhost:5173" // Para desarrollo local
         ));
 
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With"));
-        config.setAllowCredentials(true);
+        config.setAllowCredentials(true); // Importante cuando usas withCredentials en el frontend
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

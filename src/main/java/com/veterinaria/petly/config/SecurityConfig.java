@@ -57,10 +57,12 @@ public class SecurityConfig {
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                );
+                )
+                .httpBasic(AbstractHttpConfigurer::disable); // También puedes usar .disable() con lambda aquí
 
         return http.build();
     }
+
 
     @Bean
     public AuthenticationSuccessHandler authenticationSuccessHandler() {
